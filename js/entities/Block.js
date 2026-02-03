@@ -16,6 +16,7 @@ export class Block extends Phaser.GameObjects.Container {
         this.setSize(this.width, this.height);
         this.setInteractive({ useHandCursor: true });
         this.setInHandStyle();
+        this.setDepth(100);
 
         scene.add.existing(this);
     }

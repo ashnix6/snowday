@@ -208,6 +208,7 @@ export class Structure {
     block.health = 3;
     block.maxHealth = 3;
     block.setHealthStyle(3);
+    block.setDepth(10);
 
     this.drawOutline();
     this.createFilledEffect(cells);

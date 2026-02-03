@@ -165,6 +165,7 @@ export class DragDropManager {
     }
 
     returnToOriginal(block) {
+        block.setDepth(100);
         this.scene.tweens.add({
             targets: block,
             x: this.originalPosition.x,

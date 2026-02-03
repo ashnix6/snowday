@@ -98,24 +98,32 @@ export class Structure {
   }
 
   /**
-   * Try (gridX, gridY) and nearby positions; return the first valid placement or null.
-   * Try (gridX, gridY) first; optionally allow one adjacent cell so drops slightly off still snap.
+   * Try (gridX, gridY) and nearby positions; return the valid placement whose snapped
+   * position is closest to (worldX, worldY), so snapping follows bottom/left/right/top
+   * when the brick is closer to those edges.
    */
   getBestPlacement(block, worldX, worldY) {
     const { gridX, gridY } = this.getBlockGridPosition(block, worldX, worldY);
-    const cols = this.outline[0].length;
-    const rows = this.outline.length;
-    const radius = 0;
+    const blockW = block.shape[0].length * this.cellSize;
+    const blockH = block.shape.length * this.cellSize;
+    const radius = 1;
+    let best = null;
+    let bestDistSq = Infinity;
     for (let dy = -radius; dy <= radius; dy++) {
       for (let dx = -radius; dx <= radius; dx++) {
         const gx = gridX + dx;
         const gy = gridY + dy;
-        if (this.isValidPlacement(block, gx, gy)) {
-          return { gridX: gx, gridY: gy };
+        if (!this.isValidPlacement(block, gx, gy)) continue;
+        const snappedX = this.x + gx * this.cellSize + blockW / 2;
+        const snappedY = this.y + gy * this.cellSize + blockH / 2;
+        const distSq = (worldX - snappedX) ** 2 + (worldY - snappedY) ** 2;
+        if (distSq < bestDistSq) {
+          bestDistSq = distSq;
+          best = { gridX: gx, gridY: gy };
         }
       }
     }
-    return null;
+    return best;
   }
 
   isValidPlacement(block, gridX, gridY) {

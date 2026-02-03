@@ -113,6 +113,7 @@ export class DragDropManager {
         const dropResult = this.scene.handleBlockDrop(gameObject, pointer, world);
 
         if (dropResult.handled) {
+            gameObject.setScale(1);
             this.draggedBlock = null;
             return;
         }

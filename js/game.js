@@ -9,6 +9,8 @@ const config = {
     height: window.innerHeight,
     parent: 'game-container',
     backgroundColor: '#1a2a4a',
+    roundPixels: true,
+    pixelArt: true,
     scene: [BootScene, MenuScene, GameScene, LevelCompleteScene],
     physics: {
         default: 'arcade',

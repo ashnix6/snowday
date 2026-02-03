@@ -48,27 +48,48 @@ export class Block extends Phaser.GameObjects.Container {
     }
 
     createCell(x, y) {
-        const container = this.scene.add.container(x, y);
-
-        // Brick rect sized so rect + 2px stroke fits inside one cell (cellSize) without overlapping ghost
+        // Use Graphics for consistent stroke rendering (matches grid outline)
         const brickSize = this.cellSize - 4;
-        const main = this.scene.add.rectangle(0, 0, brickSize, brickSize, this.color);
-        main.setStrokeStyle(2, 0x4a90d9);
+        const halfBrick = brickSize / 2;
 
-        const highlight = this.scene.add.rectangle(
-            -this.cellSize / 6, -this.cellSize / 6,
-            this.cellSize / 3, this.cellSize / 3,
-            0xFFFFFF, 0.4
+        const graphics = this.scene.add.graphics();
+        graphics.setPosition(x, y);
+
+        // Draw shadow
+        const highlightOffset = Math.round(this.cellSize / 6);
+        const highlightSize = Math.round(this.cellSize / 3);
+        graphics.fillStyle(0x4a90d9, 0.3);
+        graphics.fillRect(
+            highlightOffset - highlightSize / 2,
+            highlightOffset - highlightSize / 2,
+            highlightSize,
+            highlightSize
         );
 
-        const shadow = this.scene.add.rectangle(
-            this.cellSize / 6, this.cellSize / 6,
-            this.cellSize / 3, this.cellSize / 3,
-            0x4a90d9, 0.3
+        // Draw main brick (fill then stroke)
+        graphics.fillStyle(this.color, 1);
+        graphics.fillRect(-halfBrick, -halfBrick, brickSize, brickSize);
+        graphics.lineStyle(2, 0x4a90d9, 1);
+        graphics.strokeRect(-halfBrick, -halfBrick, brickSize, brickSize);
+
+        // Draw highlight
+        graphics.fillStyle(0xFFFFFF, 0.4);
+        graphics.fillRect(
+            -highlightOffset - highlightSize / 2,
+            -highlightOffset - highlightSize / 2,
+            highlightSize,
+            highlightSize
         );
 
-        container.add([shadow, main, highlight]);
-        return container;
+        // Store references for color changes
+        graphics._brickSize = brickSize;
+        graphics._halfBrick = halfBrick;
+        graphics._highlightOffset = highlightOffset;
+        graphics._highlightSize = highlightSize;
+        graphics._fillColor = this.color;
+        graphics._strokeColor = 0x4a90d9;
+
+        return graphics;
     }
 
     rotate() {
@@ -112,14 +133,53 @@ export class Block extends Phaser.GameObjects.Container {
 
     setCellFillColor(color) {
         this.cells.forEach(cell => {
-            if (cell.list && cell.list[1]) cell.list[1].setFillStyle(color);
+            if (cell._fillColor !== undefined) {
+                cell._fillColor = color;
+                this.redrawCell(cell);
+            }
         });
     }
 
     setCellStrokeColor(color) {
         this.cells.forEach(cell => {
-            if (cell.list && cell.list[1]) cell.list[1].setStrokeStyle(2, color);
+            if (cell._strokeColor !== undefined) {
+                cell._strokeColor = color;
+                this.redrawCell(cell);
+            }
         });
+    }
+
+    redrawCell(graphics) {
+        const halfBrick = graphics._halfBrick;
+        const brickSize = graphics._brickSize;
+        const highlightOffset = graphics._highlightOffset;
+        const highlightSize = graphics._highlightSize;
+
+        graphics.clear();
+
+        // Draw shadow
+        graphics.fillStyle(0x4a90d9, 0.3);
+        graphics.fillRect(
+            highlightOffset - highlightSize / 2,
+            highlightOffset - highlightSize / 2,
+            highlightSize,
+            highlightSize
+        );
+
+        // Draw main brick
+        graphics.fillStyle(graphics._fillColor, 1);
+        graphics.fillRect(-halfBrick, -halfBrick, brickSize, brickSize);
+        graphics.lineStyle(2, graphics._strokeColor, 1);
+        graphics.strokeRect(-halfBrick, -halfBrick, brickSize, brickSize);
+
+        // Draw highlight
+        graphics.fillStyle(0xFFFFFF, 0.4);
+        graphics.fillRect(
+            -highlightOffset - highlightSize / 2,
+            -highlightOffset - highlightSize / 2,
+            highlightSize,
+            highlightSize
+        );
     }
 
     setInHandStyle() {
@@ -155,15 +215,15 @@ export class Block extends Phaser.GameObjects.Container {
     }
 
     flash(color = 0xFF0000) {
-        this.cells.forEach(cell => {
-            if (cell.list && cell.list[1]) cell.list[1].setFillStyle(color);
-        });
+        const originalColors = this.cells.map(cell => cell._fillColor);
+        this.setCellFillColor(color);
         if (this._flashTimer) this._flashTimer.remove();
         this._flashTimer = this.scene.time.delayedCall(300, () => {
             this._flashTimer = null;
             if (!this.scene || !this.cells) return;
-            this.cells.forEach(cell => {
-                if (cell.list && cell.list[1]) cell.list[1].setFillStyle(this.color);
+            this.cells.forEach((cell, i) => {
+                cell._fillColor = originalColors[i];
+                this.redrawCell(cell);
             });
         });
     }
@@ -173,7 +233,9 @@ export class Block extends Phaser.GameObjects.Container {
             this._flashTimer.remove();
             this._flashTimer = null;
         }
-        this.cells.forEach(cell => cell.destroy());
+        this.cells.forEach(cell => {
+            if (cell && cell.destroy) cell.destroy();
+        });
         super.destroy();
     }
 }

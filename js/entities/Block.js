@@ -1,0 +1,178 @@
+export class Block extends Phaser.GameObjects.Container {
+    constructor(scene, x, y, shape, color, cellSize = 32) {
+        super(scene, x, y);
+
+        this.scene = scene;
+        this.shape = shape;
+        this.color = color;
+        this.cellSize = cellSize;
+        this.cells = [];
+        this.isDragging = false;
+        this.isPlaced = false;
+        this.health = 3;
+        this.maxHealth = 3;
+
+        this.createVisual();
+        this.setSize(this.width, this.height);
+        this.setInteractive({ useHandCursor: true });
+        this.setInHandStyle();
+
+        scene.add.existing(this);
+    }
+
+    createVisual() {
+        this.cells.forEach(cell => cell.destroy());
+        this.cells = [];
+
+        const rows = this.shape.length;
+        const cols = this.shape[0].length;
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (this.shape[r][c] === 1) {
+                    const cell = this.createCell(
+                        c * this.cellSize - (cols * this.cellSize) / 2 + this.cellSize / 2,
+                        r * this.cellSize - (rows * this.cellSize) / 2 + this.cellSize / 2
+                    );
+                    this.cells.push(cell);
+                    this.add(cell);
+                }
+            }
+        }
+
+        this.width = cols * this.cellSize;
+        this.height = rows * this.cellSize;
+        if (this.isPlaced) this.setHealthStyle(this.health);
+        else this.setInHandStyle();
+    }
+
+    createCell(x, y) {
+        const container = this.scene.add.container(x, y);
+
+        // Brick rect sized so rect + 2px stroke fits inside one cell (cellSize) without overlapping ghost
+        const brickSize = this.cellSize - 4;
+        const main = this.scene.add.rectangle(0, 0, brickSize, brickSize, this.color);
+        main.setStrokeStyle(2, 0x4a90d9);
+
+        const highlight = this.scene.add.rectangle(
+            -this.cellSize / 6, -this.cellSize / 6,
+            this.cellSize / 3, this.cellSize / 3,
+            0xFFFFFF, 0.4
+        );
+
+        const shadow = this.scene.add.rectangle(
+            this.cellSize / 6, this.cellSize / 6,
+            this.cellSize / 3, this.cellSize / 3,
+            0x4a90d9, 0.3
+        );
+
+        container.add([shadow, main, highlight]);
+        return container;
+    }
+
+    rotate() {
+        const rows = this.shape.length;
+        const cols = this.shape[0].length;
+        const newShape = [];
+
+        for (let c = 0; c < cols; c++) {
+            newShape[c] = [];
+            for (let r = rows - 1; r >= 0; r--) {
+                newShape[c][rows - 1 - r] = this.shape[r][c];
+            }
+        }
+
+        this.shape = newShape;
+        this.createVisual();
+    }
+
+    getGridCells(gridX, gridY, cellSize) {
+        const cells = [];
+        const rows = this.shape.length;
+        const cols = this.shape[0].length;
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (this.shape[r][c] === 1) {
+                    cells.push({ x: gridX + c, y: gridY + r });
+                }
+            }
+        }
+
+        return cells;
+    }
+
+    blendColor(base, tint) {
+        const r = Math.min(255, ((base >> 16) & 0xFF) * ((tint >> 16) & 0xFF) / 255);
+        const g = Math.min(255, ((base >> 8) & 0xFF) * ((tint >> 8) & 0xFF) / 255);
+        const b = Math.min(255, (base & 0xFF) * (tint & 0xFF) / 255);
+        return (r << 16) | (g << 8) | b;
+    }
+
+    setCellFillColor(color) {
+        this.cells.forEach(cell => {
+            if (cell.list && cell.list[1]) cell.list[1].setFillStyle(color);
+        });
+    }
+
+    setCellStrokeColor(color) {
+        this.cells.forEach(cell => {
+            if (cell.list && cell.list[1]) cell.list[1].setStrokeStyle(2, color);
+        });
+    }
+
+    setInHandStyle() {
+        this.setCellFillColor(this.blendColor(this.color, 0xFFE080));
+        this.setCellStrokeColor(0xFFD700);
+    }
+
+    setPlacedStyle() {
+        this.setCellFillColor(this.color);
+        this.setCellStrokeColor(0x4a90d9);
+    }
+
+    setHealthStyle(health) {
+        this.health = health;
+        const tint = health >= 3 ? 0xB8FFB8 : health === 2 ? 0xFFFFB8 : 0xFFB8B8;
+        const strokeColor = health >= 3 ? 0x00AA00 : health === 2 ? 0xCCAA00 : 0xCC0000;
+        this.setCellFillColor(this.blendColor(this.color, tint));
+        this.setCellStrokeColor(strokeColor);
+    }
+
+    takeDamage(amount) {
+        if (!this.isPlaced) return this.health;
+        this.health = Math.max(0, this.health - amount);
+        if (this.health > 0) this.setHealthStyle(this.health);
+        return this.health;
+    }
+
+    setHighlight(enabled) {
+        const tint = enabled ? 0xA0FFA0 : (this.isPlaced ? (this.health >= 3 ? 0xB8FFB8 : this.health === 2 ? 0xFFFFB8 : 0xFFB8B8) : 0xFFE080);
+        const strokeColor = enabled ? 0x00FF00 : (this.isPlaced ? (this.health >= 3 ? 0x00AA00 : this.health === 2 ? 0xCCAA00 : 0xCC0000) : 0xFFD700);
+        this.setCellFillColor(this.blendColor(this.color, tint));
+        this.setCellStrokeColor(strokeColor);
+    }
+
+    flash(color = 0xFF0000) {
+        this.cells.forEach(cell => {
+            if (cell.list && cell.list[1]) cell.list[1].setFillStyle(color);
+        });
+        if (this._flashTimer) this._flashTimer.remove();
+        this._flashTimer = this.scene.time.delayedCall(300, () => {
+            this._flashTimer = null;
+            if (!this.scene || !this.cells) return;
+            this.cells.forEach(cell => {
+                if (cell.list && cell.list[1]) cell.list[1].setFillStyle(this.color);
+            });
+        });
+    }
+
+    destroy() {
+        if (this._flashTimer) {
+            this._flashTimer.remove();
+            this._flashTimer = null;
+        }
+        this.cells.forEach(cell => cell.destroy());
+        super.destroy();
+    }
+}

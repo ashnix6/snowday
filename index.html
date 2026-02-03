@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snow Day</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        body {
+            background: #1a1a2e;
+        }
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <div id="console-errors" style="display:none; position:fixed; bottom:0; left:0; right:0; background:#1a1a2e; color:#ff6b6b; padding:8px 12px; font:12px monospace; max-height:120px; overflow:auto; border-top:2px solid #ff6b6b; z-index:9999;"></div>
+    <script>
+      (function() {
+        var errors = [];
+        function add(msg) { errors.push(msg); var el = document.getElementById('console-errors'); if (el) { el.style.display = 'block'; el.textContent = errors.join('\n'); } }
+        window.onerror = function(m, s, l, c, e) { add('Error: ' + m + (s ? ' at ' + s + ':' + l : '')); return false; };
+        var orig = console.error; console.error = function() { add('console.error: ' + [].slice.call(arguments).join(' ')); orig.apply(console, arguments); };
+      })();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <script type="module" src="js/game.js"></script>
+</body>
+</html>

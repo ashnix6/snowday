@@ -307,17 +307,12 @@ export class GameScene extends Phaser.Scene {
             ease: 'Back.easeOut'
         });
 
-        this.tweens.addCounter({
-            from: 0,
-            to: 1,
+        this.tweens.add({
+            targets: block,
+            x: spawnX,
+            y: endY,
             duration: 450,
-            ease: 'Sine.easeInOut',
-            onUpdate: (tween) => {
-                const t = tween.getValue();
-                block.x = startX + (spawnX - startX) * t;
-                const y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * arcPeakY + t * t * endY;
-                block.y = y;
-            }
+            ease: 'Sine.easeInOut'
         });
 
         this.updateBlocksText();
@@ -356,17 +351,12 @@ export class GameScene extends Phaser.Scene {
             ease: 'Back.easeOut'
         });
 
-        this.tweens.addCounter({
-            from: 0,
-            to: 1,
+        this.tweens.add({
+            targets: block,
+            x: spawnX,
+            y: endY,
             duration: 450,
-            ease: 'Sine.easeInOut',
-            onUpdate: (tween) => {
-                const t = tween.getValue();
-                block.x = startX + (spawnX - startX) * t;
-                const y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * arcPeakY + t * t * endY;
-                block.y = y;
-            }
+            ease: 'Sine.easeInOut'
         });
 
         this.updateBlocksText();
@@ -440,19 +430,16 @@ export class GameScene extends Phaser.Scene {
         lightning.setPosition(0, 0);
         lightning.setDepth(2000);
 
-        const flash = () => {
-            drawLightning(lightning, cloudX, cloudY, targetNPC.x, targetNPC.y);
-            lightning.setAlpha(1);
-            this.tweens.add({
-                targets: lightning,
-                alpha: 0,
-                duration: 80,
-                hold: 40,
-                yoyo: true
-            });
-        };
+        drawLightning(lightning, cloudX, cloudY, targetNPC.x, targetNPC.y);
+        lightning.setAlpha(1);
+        this.tweens.add({
+            targets: lightning,
+            alpha: 0,
+            duration: 80,
+            hold: 40,
+            yoyo: true
+        });
 
-        flash();
         this.time.delayedCall(120, () => {
             drawLightning(lightning, cloudX, cloudY, targetNPC.x, targetNPC.y);
             lightning.setAlpha(1);
@@ -467,7 +454,6 @@ export class GameScene extends Phaser.Scene {
         });
 
         this.time.delayedCall(350, () => {
-            this.cameras.main.flash(150, 255, 255, 255, false, 0.3);
             this.cameras.main.shake(80, 0.008);
         });
     }

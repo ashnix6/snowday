@@ -280,6 +280,49 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
+    spawnBlock() {
+        if (this.heldBlocks.length >= this.maxHeldBlocks) return;
+
+        const bounds = this.structure.getBounds();
+        const minMargin = bounds.width / 2;
+        const leftLimit = bounds.x - minMargin;
+        const rightLimit = bounds.x + bounds.width + minMargin;
+        const spawnX = [leftLimit, rightLimit][Phaser.Math.Between(0, 1)];
+
+        const startX = spawnX;
+        const startY = this.terrainY;
+        const endY = this.terrainY - 60;
+        const arcPeakY = this.terrainY - 140;
+
+        const progress = this.structure.getCompletion();
+        const preferredKeys = progress >= 0.9 ? this.structure.getUsefulTetrominoKeys(TETROMINOES) : [];
+        const block = this.blockGenerator.generateRandomBlock(startX, startY, { preferredKeys });
+        this.heldBlocks.push(block);
+
+        block.setScale(0);
+        this.tweens.add({
+            targets: block,
+            scale: 1,
+            duration: 150,
+            ease: 'Back.easeOut'
+        });
+
+        this.tweens.addCounter({
+            from: 0,
+            to: 1,
+            duration: 450,
+            ease: 'Sine.easeInOut',
+            onUpdate: (tween) => {
+                const t = tween.getValue();
+                block.x = startX + (spawnX - startX) * t;
+                const y = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * arcPeakY + t * t * endY;
+                block.y = y;
+            }
+        });
+
+        this.updateBlocksText();
+    }
+
     onTerrainClick(pointer) {
         if (this.chipCooldown > 0) return;
         if (this.heldBlocks.length >= this.maxHeldBlocks) return;

@@ -66,7 +66,12 @@ export class DragDropManager {
     }
 
     update() {
-        if (!this.draggedBlock || !this.draggedBlock.isDragging) return;
+        if (!this.draggedBlock || !this.draggedBlock.isDragging) {
+            if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
+                this.scene.spawnBlock();
+            }
+            return;
+        }
 
         if (Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
             this.draggedBlock.rotate();

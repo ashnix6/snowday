@@ -36,20 +36,6 @@ export class GameScene extends Phaser.Scene {
         this.collisionManager = new CollisionManager(this);
 
         this.createSnowfall();
-        this.scale.on('resize', this.onViewportResize, this);
-    }
-
-    onViewportResize() {
-        if (!this.structure) return;
-        const width = this.cameras.main.width;
-        const height = this.cameras.main.height;
-        this.terrainY = height - 80;
-        const outline = this.structure.outline;
-        const structureWidth = outline[0].length * this.cellSize;
-        const structureHeight = outline.length * this.cellSize;
-        const structureX = (width - structureWidth) / 2;
-        const structureY = this.terrainY - structureHeight - 40;
-        this.structure.setPosition(structureX, structureY);
     }
 
     createBackground() {

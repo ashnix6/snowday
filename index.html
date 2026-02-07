@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Snow Day</title>
     <style>
         * {
@@ -16,13 +17,26 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
         body {
-            background: #1a1a2e;
+            background: #1a2a4a;
         }
         #game-container {
             width: 100vw;
             height: 100vh;
+        }
+        #game-container.force-landscape {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vh;
+            height: 100vw;
+            transform: rotate(-90deg) translateX(-100%);
+            transform-origin: top left;
         }
     </style>
 </head>

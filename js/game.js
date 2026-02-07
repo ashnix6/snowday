@@ -84,6 +84,17 @@ const config = {
 
 const game = new Phaser.Game(config);
 
+// Resume AudioContext after first user gesture (required by Chrome autoplay policy)
+function resumeAudioOnGesture() {
+    if (game.sound && game.sound.context && game.sound.context.state === 'suspended') {
+        game.sound.context.resume();
+    }
+    document.body.removeEventListener('click', resumeAudioOnGesture);
+    document.body.removeEventListener('touchstart', resumeAudioOnGesture);
+}
+document.body.addEventListener('click', resumeAudioOnGesture, { once: true });
+document.body.addEventListener('touchstart', resumeAudioOnGesture, { once: true });
+
 // Override parent bounds so Phaser sees the un-rotated container dimensions
 const origGetParentBounds = game.scale.getParentBounds.bind(game.scale);
 game.scale.getParentBounds = function () {

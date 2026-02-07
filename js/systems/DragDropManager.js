@@ -82,7 +82,13 @@ export class DragDropManager {
         this.draggedBlock.x = world.x;
         this.draggedBlock.y = world.y;
 
-        if (this.scene.structure) {
+        const overDiscard = this.isInDiscardZone(world.x, world.y);
+        this.draggedBlock.setDiscardPreview(overDiscard);
+
+        if (overDiscard) {
+            this.draggedBlock.setHighlight(false);
+            if (this.scene.structure) this.scene.structure.clearPlacementPreview();
+        } else if (this.scene.structure) {
             const canPlace = this.scene.structure.canPlaceBlock(
                 this.draggedBlock, world.x, world.y
             );
@@ -106,6 +112,7 @@ export class DragDropManager {
 
         const gameObject = this.draggedBlock;
         gameObject.isDragging = false;
+        gameObject.setDiscardPreview(false);
         gameObject.setHighlight(false);
         if (this.scene.structure) this.scene.structure.clearPlacementPreview();
 

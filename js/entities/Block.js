@@ -214,6 +214,16 @@ export class Block extends Phaser.GameObjects.Container {
         this.setCellStrokeColor(strokeColor);
     }
 
+    setDiscardPreview(overDiscard) {
+        if (overDiscard) {
+            this.setAlpha(0.55);
+            this.setCellStrokeColor(0xDD2222);
+            this.setCellFillColor(this.blendColor(this.color, 0xFFAAAA));
+        } else {
+            this.setAlpha(1);
+        }
+    }
+
     flash(color = 0xFF0000) {
         const originalColors = this.cells.map(cell => cell._fillColor);
         this.setCellFillColor(color);

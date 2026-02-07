@@ -164,27 +164,21 @@ export class GameScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const outline = OUTLINES[this.currentLevel];
 
-        this.levelText = this.add.text(width / 2, 100, `Level ${this.currentLevel + 1}: ${outline.name}`, {
+        this.levelText = this.add.text(width / 2, 20, `Level ${this.currentLevel + 1}: ${outline.name}`, {
             fontSize: '24px',
             fontFamily: 'Arial',
             color: '#ffffff',
             fontStyle: 'bold'
         }).setOrigin(0.5, 0);
 
-        this.progressText = this.add.text(width / 2, 130, 'Progress: 0%', {
-            fontSize: '18px',
+        this.statusLineText = this.add.text(width / 2, 52, 'Progress: 0%  ·  Blocks: 0/5', {
+            fontSize: '16px',
             fontFamily: 'Arial',
             color: '#b8d4e8'
         }).setOrigin(0.5, 0);
 
         this.progressBar = this.add.graphics();
         this.updateProgressBar();
-
-        this.blocksText = this.add.text(20, 20, 'Blocks: 0/5', {
-            fontSize: '16px',
-            fontFamily: 'Arial',
-            color: '#ffffff'
-        });
     }
 
     updateProgressBar() {
@@ -194,47 +188,47 @@ export class GameScene extends Phaser.Scene {
         this.progressBar.clear();
 
         this.progressBar.fillStyle(0x333333);
-        this.progressBar.fillRect(width / 2 - 100, 155, 200, 15);
+        this.progressBar.fillRect(width / 2 - 100, 72, 200, 15);
 
         this.progressBar.fillStyle(0x4a90d9);
-        this.progressBar.fillRect(width / 2 - 100, 155, 200 * progress, 15);
+        this.progressBar.fillRect(width / 2 - 100, 72, 200 * progress, 15);
 
         this.progressBar.lineStyle(2, 0xffffff);
-        this.progressBar.strokeRect(width / 2 - 100, 155, 200, 15);
+        this.progressBar.strokeRect(width / 2 - 100, 72, 200, 15);
 
-        this.progressText.setText(`Progress: ${Math.round(progress * 100)}%`);
+        this.statusLineText.setText(`Progress: ${Math.round(progress * 100)}%  ·  Blocks: ${this.heldBlocks.length}/${this.maxHeldBlocks}`);
     }
 
     createDiscardZone() {
         const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
         const zoneW = 80;
         const zoneH = 70;
+        const w = 24;
+        const h = 32;
+        const lidH = 6;
+        const marginBottom = 8;
+        // Bottom-align: bottom of can (body) at marginBottom above bottom of screen
+        const cy = height - marginBottom + lidH;
+        const cx = width / 2;
 
         this.discardZone = {
-            x: width / 2 - zoneW / 2,
-            y: 20,
+            x: cx - zoneW / 2,
+            y: cy - zoneH / 2,
             width: zoneW,
             height: zoneH
         };
 
         const g = this.add.graphics();
-        g.fillStyle(0xFF4444, 0.25);
-        g.fillRoundedRect(this.discardZone.x, this.discardZone.y, zoneW, zoneH, 8);
-        g.lineStyle(2, 0xFF4444, 0.8);
-        g.strokeRoundedRect(this.discardZone.x, this.discardZone.y, zoneW, zoneH, 8);
-
-        const cx = this.discardZone.x + zoneW / 2;
-        const cy = this.discardZone.y + zoneH / 2;
-        g.fillStyle(0xFF4444, 0.9);
-        g.fillRect(cx - 10, cy - 18, 20, 16);
-        g.fillRect(cx - 14, cy - 22, 28, 6);
-        g.fillRect(cx - 5, cy - 2, 10, 14);
-        g.lineStyle(2, 0xCC2222);
-        g.strokeRect(cx - 10, cy - 18, 20, 16);
-        g.strokeRect(cx - 14, cy - 22, 28, 6);
-        g.strokeRect(cx - 5, cy - 2, 10, 14);
-        this.add.text(cx, cy - 8, '♻', {
-            fontSize: '24px',
+        g.fillStyle(0xCC2222, 0.95);
+        g.fillRect(cx - w / 2, cy - lidH - h, w, h);
+        g.fillStyle(0xDD3333, 0.95);
+        g.fillRect(cx - w / 2 - 2, cy - lidH - h - lidH, w + 4, lidH);
+        g.lineStyle(1, 0x991111);
+        g.strokeRect(cx - w / 2, cy - lidH - h, w, h);
+        g.strokeRect(cx - w / 2 - 2, cy - lidH - h - lidH, w + 4, lidH);
+        this.add.text(cx, cy - lidH - h / 2, '♻', {
+            fontSize: '18px',
             color: '#ffffff'
         }).setOrigin(0.5);
     }
@@ -445,7 +439,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     updateBlocksText() {
-        this.blocksText.setText(`Blocks: ${this.heldBlocks.length}/${this.maxHeldBlocks}`);
+        const progress = this.structure.getCompletion();
+        this.statusLineText.setText(`Progress: ${Math.round(progress * 100)}%  ·  Blocks: ${this.heldBlocks.length}/${this.maxHeldBlocks}`);
     }
 
     handleBlockDrop(block, pointer, worldPoint) {

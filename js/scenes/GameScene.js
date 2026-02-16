@@ -36,6 +36,10 @@ export class GameScene extends Phaser.Scene {
         this.collisionManager = new CollisionManager(this);
 
         this.createSnowfall();
+
+        this.blocksCreated = 0;
+        this.spawnInitialBlock();
+        this.createTutorial();
     }
 
     createBackground() {
@@ -260,8 +264,172 @@ export class GameScene extends Phaser.Scene {
         }
     }
 
+    spawnInitialBlock() {
+        if (this.heldBlocks.length >= this.maxHeldBlocks) return;
+
+        const bounds = this.structure.getBounds();
+        const minMargin = bounds.width / 2;
+        const spawnX = bounds.x - minMargin;
+        const startY = this.terrainY;
+        const endY = this.terrainY - 60;
+
+        const block = this.blockGenerator.generateRandomBlock(spawnX, startY, {});
+        this.heldBlocks.push(block);
+
+        block.setScale(0);
+        this.tweens.add({ targets: block, scale: 1, duration: 150, ease: 'Back.easeOut' });
+        this.tweens.add({ targets: block, x: spawnX, y: endY, duration: 450, ease: 'Sine.easeInOut' });
+        this.updateBlocksText();
+    }
+
+    createTutorial() {
+        this.tutorialLayer = this.add.container(0, 0);
+        this.tutorialLayer.setDepth(5000);
+        this.tutorialLayer.setAlpha(0.9);
+
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+
+        const textStyle = {
+            fontSize: '12px',
+            fontFamily: "'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive",
+            color: '#ffffff',
+            stroke: '#1a2a4a',
+            strokeThickness: 3,
+            align: 'center'
+        };
+
+        const drawChalkArrow = (fromX, fromY, toX, toY) => {
+            const g = this.add.graphics();
+            const steps = 10;
+            const dx = (toX - fromX) / steps;
+            const dy = (toY - fromY) / steps;
+            const angle = Math.atan2(toY - fromY, toX - fromX);
+            const headLen = 8;
+
+            // Pre-compute jittered path so border and fill share the same shape
+            const seed = fromX * 7 + fromY * 13;
+            const pts = [{ x: fromX, y: fromY }];
+            for (let i = 0; i < steps; i++) {
+                const r1 = Math.sin(seed + i * 17.3) * 1.5;
+                const r2 = Math.cos(seed + i * 23.7) * 1.5;
+                pts.push({
+                    x: fromX + dx * (i + 1) + r1,
+                    y: fromY + dy * (i + 1) + r2
+                });
+            }
+
+            // Dark border pass
+            g.lineStyle(3, 0x1a2a4a, 0.6);
+            for (let i = 0; i < pts.length - 1; i++) {
+                g.lineBetween(pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y);
+            }
+            g.lineBetween(toX, toY, toX + Math.cos(angle + 2.6) * headLen, toY + Math.sin(angle + 2.6) * headLen);
+            g.lineBetween(toX, toY, toX + Math.cos(angle - 2.6) * headLen, toY + Math.sin(angle - 2.6) * headLen);
+
+            // White chalk pass
+            g.lineStyle(1.2, 0xFFFFFF, 0.85);
+            for (let i = 0; i < pts.length - 1; i++) {
+                g.lineBetween(pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y);
+            }
+            g.lineBetween(toX, toY, toX + Math.cos(angle + 2.6) * headLen, toY + Math.sin(angle + 2.6) * headLen);
+            g.lineBetween(toX, toY, toX + Math.cos(angle - 2.6) * headLen, toY + Math.sin(angle - 2.6) * headLen);
+
+            return g;
+        };
+
+        const items = [];
+
+        // 1. NPC - arrow at left NPC, label offset so it doesn't overlap
+        const leftNpc = this.npcs.find(n => n.side === 'left');
+        if (leftNpc) {
+            const labelX = 15, labelY = leftNpc.y - 120;
+            const g = drawChalkArrow(labelX + 50, labelY + 12, leftNpc.x + 20, leftNpc.y - 50);
+            const t = this.add.text(labelX, labelY, 'Throws\nsnowballs!', textStyle).setOrigin(0, 1);
+            items.push(g, t);
+        }
+
+        // 2. Snow ground - click to spawn blocks
+        {
+            const tx = width * 0.78, ty = this.terrainY - 8;
+            const g = drawChalkArrow(tx, ty, tx - 15, this.terrainY + 12);
+            const t = this.add.text(tx, ty - 5, 'Click for blocks', textStyle).setOrigin(0.5, 1);
+            items.push(g, t);
+        }
+
+        // 3. Cloud - drop block to KO NPC, label well below cloud
+        {
+            const cx = width - 100, cy = 90;
+            const g = drawChalkArrow(cx, cy + 80, cx, cy + 45);
+            const t = this.add.text(cx, cy + 85, 'Drop to KO', textStyle).setOrigin(0.5, 0);
+            items.push(g, t);
+        }
+
+        // 4. Spawned block - drag and place (removed on first drag)
+        {
+            const sb = this.structure.getBounds();
+            const bx = sb.x - sb.width / 2;
+            const by = this.terrainY - 55;
+            const g = drawChalkArrow(bx - 50, by - 15, bx - 8, by);
+            const t = this.add.text(bx - 55, by - 18, 'Drag & place', textStyle).setOrigin(1, 1);
+            this.dragPlaceHint = { arrow: g, text: t };
+            items.push(g, t);
+        }
+
+        // 5. Fill to win - arrow pointing at progress bar (y=72, centered)
+        {
+            const barX = width / 2 + 110;
+            const barY = 79;
+            const g = drawChalkArrow(barX + 45, barY, barX + 5, barY);
+            const t = this.add.text(barX + 50, barY, 'Fill to win!', textStyle).setOrigin(0, 0.5);
+            items.push(g, t);
+        }
+
+        // 6. Trash - discard blocks
+        {
+            const tx = width / 2 + 48, ty = height - 42;
+            const g = drawChalkArrow(tx, ty, width / 2 + 16, ty + 3);
+            const t = this.add.text(tx + 5, ty, 'Discard', textStyle).setOrigin(0, 0.5);
+            items.push(g, t);
+        }
+
+        for (const item of items) {
+            this.tutorialLayer.add(item);
+        }
+    }
+
+    removeDragPlaceHint() {
+        if (this.dragPlaceHint) {
+            const { arrow, text } = this.dragPlaceHint;
+            this.dragPlaceHint = null;
+            this.tweens.add({ targets: arrow, alpha: 0, duration: 200, onComplete: () => arrow.destroy() });
+            this.tweens.add({ targets: text, alpha: 0, duration: 200, onComplete: () => text.destroy() });
+        }
+    }
+
+    fadeTutorial() {
+        this.blocksCreated++;
+        if (this.tutorialLayer && this.blocksCreated <= 10) {
+            const alpha = Math.max(0, 0.9 * (1 - this.blocksCreated / 10));
+            this.tweens.add({
+                targets: this.tutorialLayer,
+                alpha: alpha,
+                duration: 300
+            });
+            if (this.blocksCreated >= 10) {
+                this.time.delayedCall(350, () => {
+                    if (this.tutorialLayer) {
+                        this.tutorialLayer.destroy();
+                        this.tutorialLayer = null;
+                    }
+                });
+            }
+        }
+    }
+
     spawnBlock() {
         if (this.heldBlocks.length >= this.maxHeldBlocks) return;
+        this.fadeTutorial();
 
         const bounds = this.structure.getBounds();
         const minMargin = bounds.width / 2;
@@ -303,6 +471,7 @@ export class GameScene extends Phaser.Scene {
         if (this.heldBlocks.length >= this.maxHeldBlocks) return;
 
         this.chipCooldown = 500;
+        this.fadeTutorial();
 
         const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
         this.createChipEffect(world.x, world.y);

@@ -33,6 +33,7 @@ export class DragDropManager {
             block.setDepth(1000);
             block.isDragging = true;
             this._attachJustHappened = true;
+            if (this.scene.removeDragPlaceHint) this.scene.removeDragPlaceHint();
             this.scene.tweens.add({
                 targets: block,
                 scale: 1.1,

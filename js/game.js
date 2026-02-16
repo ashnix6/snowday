@@ -1,5 +1,5 @@
 import { BootScene } from './scenes/BootScene.js';
-import { MenuScene } from './scenes/MenuScene.js';
+
 import { GameScene } from './scenes/GameScene.js';
 import { LevelCompleteScene } from './scenes/LevelCompleteScene.js';
 
@@ -65,7 +65,7 @@ const config = {
     backgroundColor: '#1a2a4a',
     roundPixels: true,
     pixelArt: true,
-    scene: [BootScene, MenuScene, GameScene, LevelCompleteScene],
+    scene: [BootScene, GameScene, LevelCompleteScene],
     physics: {
         default: 'arcade',
         arcade: {
